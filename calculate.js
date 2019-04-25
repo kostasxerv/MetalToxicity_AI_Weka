@@ -63,8 +63,9 @@ function chooseTwoVariables(data){
 		}
 	}
 	const max = Math.max(...relations.map(d => d.value))
-	const maxRelation = relations.find(r => r.value == max)
-	console.log(maxRelation)
+	const choosen = relations.find(r => r.value == max)
+	console.log(choosen)
+	return choosen
 	// find the two max vars using pearson
 }
 
@@ -75,14 +76,63 @@ async function main(){
 	
 	let normalizedDataSet = []
 	labels
-		// .slice(1,3)
 		.slice(1, labels.length -1)
 		.forEach(k => {
 			const data = dataSet.map(d => d[k])
 			normalizedDataSet.push({key: k, data: normalizeData(data)})
 		})
 
-	chooseTwoVariables(normalizedDataSet)
+	const choosenVars = chooseTwoVariables(normalizedDataSet)
+
+	const index1 = labels.indexOf(choosenVars.key1)
+	console.log(index1)
+	const index2 = labels.indexOf(choosenVars.key2)
+	console.log(index2)
+
+	// console.log(dataSet.map(d => d[labels[0]]), normalizedDataSet[index1], normalizedDataSet[index2])
+
+	const {d1, d2} = separateData(normalizedDataSet[index1].data)
+	let D = normalizedDataSet[index1].data
+	console.log(d1.map(d => dataSet[D.indexOf(d)]['Metal Oxide']))
+
+
+	console.log(d2.map(d => dataSet[D.indexOf(d)]['Metal Oxide']))
+}
+
+
+function separateData(data){
+	let d1 = [], d2 = []
+	const distance = (a,b) => Math.abs(a-b)	
+	let mean = data.reduce((a,b) => a + b) / data.length
+	const distances = data.map(d => distance(d, mean))
+	const min =  Math.min(...distances)
+	let s1 = data[distances.indexOf(min)]
+	d1.push(s1)
+
+	for(let i = 1; i < 10; i++){
+		let min = null
+		let index = null
+		for(let j = 1; j < data.length; j++){
+			if(d1.includes(data[j])) continue;
+			
+			const dis = d1.map(d => distance(data[j], d)).reduce((a,b) => a + b) / d1.length
+
+			if(min) {
+				if(min > dis) {
+					min = dis
+					index = j
+				}
+			} else {
+				min = dis
+				index = j
+			}
+		}
+		d1.push(data[index])
+	}
+
+	d2 = data.filter(d => !d1.includes(d))
+
+	return {d1, d2}
 }
 
 main()
