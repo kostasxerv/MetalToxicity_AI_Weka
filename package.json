@@ -1,0 +1,14 @@
+{
+  "name": "metaltoxicity",
+  "version": "1.0.0",
+  "description": "",
+  "main": "calculate.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "csv-parser": "^2.2.0"
+  }
+}
