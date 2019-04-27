@@ -69,37 +69,6 @@ function chooseTwoVariables(data){
 	// find the two max vars using pearson
 }
 
-async function main(){
-	const dataSet = await loadDataSet()
-
-	const labels = Object.keys(dataSet[0]).map(k => k)
-	
-	let normalizedDataSet = []
-	labels
-		.slice(1, labels.length -1)
-		.forEach(k => {
-			const data = dataSet.map(d => d[k])
-			normalizedDataSet.push({key: k, data: normalizeData(data)})
-		})
-
-	const choosenVars = chooseTwoVariables(normalizedDataSet)
-
-	const index1 = labels.indexOf(choosenVars.key1)
-	console.log(index1)
-	const index2 = labels.indexOf(choosenVars.key2)
-	console.log(index2)
-
-	// console.log(dataSet.map(d => d[labels[0]]), normalizedDataSet[index1], normalizedDataSet[index2])
-
-	const {d1, d2} = separateData(normalizedDataSet[index1].data)
-	let D = normalizedDataSet[index1].data
-	console.log(d1.map(d => dataSet[D.indexOf(d)]['Metal Oxide']))
-
-
-	console.log(d2.map(d => dataSet[D.indexOf(d)]['Metal Oxide']))
-}
-
-
 function separateData(data){
 	let d1 = [], d2 = []
 	const distance = (a,b) => Math.abs(a-b)	
@@ -134,5 +103,83 @@ function separateData(data){
 
 	return {d1, d2}
 }
+
+async function main(){
+	// load data from file
+	const dataSet = await loadDataSet()
+
+	// get the labels 
+	const labels = Object.keys(dataSet[0]).map(k => k)
+	
+	// normalize data
+	let normalizedDataSet = []
+	labels.slice(1, labels.length - 1) // get all except the last which is the toxicity index
+		.forEach(k => {
+			const data = dataSet.map(d => d[k])
+			normalizedDataSet.push({key: k, data: normalizeData(data)})
+		})
+
+	// get the choosen vars with pearson coorelation	
+	const choosenVars = chooseTwoVariables(normalizedDataSet)
+
+	const index1 = labels.indexOf(choosenVars.key1)
+	const index2 = labels.indexOf(choosenVars.key2)
+
+	// divide into 2 arrays (training - evaluation)
+	const selectedData = normalizedDataSet[index1].data
+	const {d1, d2} = separateData(selectedData.slice(0, selectedData.length - 1))
+	
+	// export to files
+	const header = [
+	  	{ id: 'var1', title: normalizedDataSet[index1].key },
+	  	{ id: 'var2', title: normalizedDataSet[index2].key },
+	  	{ id: 'toxicity', title: 'Toxicity Index' },
+	  ] // headers for the files
+
+	const trainingRecords = d1.map((v, i) => {
+		const index = normalizedDataSet[index1].data.indexOf(v)
+		return { 
+			var1: v.toString(),
+			var2: normalizedDataSet[index2].data[index].toString(),
+			toxicity: dataSet[index]['Toxicity Index']
+		} // records of the training data
+	})
+
+	const evaluationRecords = d2.map((v, i) => {
+		const index = normalizedDataSet[index1].data.indexOf(v)
+		return { 
+			var1: v.toString(),
+			var2: normalizedDataSet[index2].data[index].toString(),
+			toxicity: dataSet[index]['Toxicity Index']
+		} // records of the evaluation data
+	})
+
+	const predictionData = [{ 
+			var1: normalizedDataSet[index1].data[17].toString(),
+			var2: normalizedDataSet[index2].data[17].toString(),
+			toxicity: ''
+	}] // records of the data to predict
+	
+
+	exportToCsv('training-data', header, trainingRecords)
+	exportToCsv('evaluation-data', header, evaluationRecords)
+	exportToCsv('predict-data', header, predictionData) 
+}
+
+
+function exportToCsv(file, header, records){
+	const createCsvWriter = require('csv-writer').createObjectCsvWriter;  
+	const csvWriter = createCsvWriter({  
+	  path: file + '.csv',
+	  header
+	});
+
+	return csvWriter  
+	  .writeRecords(records)
+	  .then(()=> console.log('The CSV file was written successfully'));
+}
+
+
+
 
 main()
